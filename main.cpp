@@ -1,4 +1,4 @@
-// g++ -std=c++11 main.cpp hcm.cpp -o main -lncurses -ltinfo            компиляция
+// g++ -std=c++11 main.cpp hcm.cpp -o main -lncurses -ltinfo            РєРѕРјРїРёР»СЏС†РёСЏ
 #include <iostream>
 #include "hcm.h"
 
@@ -15,8 +15,8 @@ int func(int a, int b) {
 }
 
 int main() {
-    initscr(); // Инициализация ncurses
-    start_color(); // Инициализация цветов
+    initscr(); // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ ncurses
+    start_color(); // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ С†РІРµС‚РѕРІ
     init_pair(1, COLOR_MAGENTA, COLOR_CYAN); 
     init_pair(2, COLOR_BLACK, COLOR_YELLOW); 
     init_pair(3, COLOR_WHITE, COLOR_CYAN); 
@@ -26,11 +26,11 @@ int main() {
     init_pair(7, COLOR_MAGENTA, COLOR_BLUE);
     init_pair(8, COLOR_BLACK, COLOR_MAGENTA);
 
-    bkgd(COLOR_PAIR(7)); // Заливаем фон цветом 1
+    bkgd(COLOR_PAIR(7)); // Р—Р°Р»РёРІР°РµРј С„РѕРЅ С†РІРµС‚РѕРј 1
 
-    noecho(); // Не показывать вводимые символы
-    curs_set(0); // Не показывать курсор
-    keypad(stdscr, TRUE); // Включаем режим работы с функциональными клавишами
+    noecho(); // РќРµ РїРѕРєР°Р·С‹РІР°С‚СЊ РІРІРѕРґРёРјС‹Рµ СЃРёРјРІРѕР»С‹
+    curs_set(0); // РќРµ РїРѕРєР°Р·С‹РІР°С‚СЊ РєСѓСЂСЃРѕСЂ
+    keypad(stdscr, TRUE); // Р’РєР»СЋС‡Р°РµРј СЂРµР¶РёРј СЂР°Р±РѕС‚С‹ СЃ С„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅС‹РјРё РєР»Р°РІРёС€Р°РјРё
 
     Menu root(" MENU ");
     Menu help("HELP MENU");
@@ -42,8 +42,8 @@ int main() {
     Label* resultLabel = new Label("Result: ", 5);
 
     Button* calculateButton = new Button("Calculate", [&]() {
-        int a = stoi(input1->text); // Преобразуем строку в число
-        int b = stoi(input2->text); // Преобразуем строку в число
+        int a = stoi(input1->text); // РџСЂРµРѕР±СЂР°Р·СѓРµРј СЃС‚СЂРѕРєСѓ РІ С‡РёСЃР»Рѕ
+        int b = stoi(input2->text); // РџСЂРµРѕР±СЂР°Р·СѓРµРј СЃС‚СЂРѕРєСѓ РІ С‡РёСЃР»Рѕ
         resultLabel->SetText("Result: " + to_string(func(a, b)));
     }, 2);
 
@@ -73,6 +73,6 @@ int main() {
         currentMenu->Input(key);
     }
 
-    endwin(); // Завершение работы с ncurses
+    endwin(); // Р—Р°РІРµСЂС€РµРЅРёРµ СЂР°Р±РѕС‚С‹ СЃ ncurses
     return 0;
 }

@@ -20,8 +20,8 @@ int divide(int a, int b) {
 
 
 int main(){
-    initscr(); // Инициализация ncurses
-    start_color(); // Инициализация цветов
+    initscr(); // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ ncurses
+    start_color(); // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ С†РІРµС‚РѕРІ
     init_pair(1, COLOR_MAGENTA, COLOR_BLUE); 
     init_pair(2, COLOR_BLACK, COLOR_YELLOW); 
     init_pair(3, COLOR_WHITE, COLOR_CYAN); 
@@ -33,9 +33,9 @@ int main(){
 
     bkgd(COLOR_PAIR(7)); 
 
-    noecho(); // Не показывать вводимые символы
-    curs_set(0); // Не показывать курсор
-    keypad(stdscr, TRUE); // Включаем режим работы с функциональными клавишами
+    noecho(); // РќРµ РїРѕРєР°Р·С‹РІР°С‚СЊ РІРІРѕРґРёРјС‹Рµ СЃРёРјРІРѕР»С‹
+    curs_set(0); // РќРµ РїРѕРєР°Р·С‹РІР°С‚СЊ РєСѓСЂСЃРѕСЂ
+    keypad(stdscr, TRUE); // Р’РєР»СЋС‡Р°РµРј СЂРµР¶РёРј СЂР°Р±РѕС‚С‹ СЃ С„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅС‹РјРё РєР»Р°РІРёС€Р°РјРё
 
     Menu calc(" CALCULATOR ");
     calc.widgets.push_back(new Input("Enter 1st number", "Please enter number: ", 3));
@@ -68,6 +68,6 @@ int main(){
         calc.Input(getch_key());
     }
 
-    endwin(); // Завершение работы с ncurses
+    endwin(); // Р—Р°РІРµСЂС€РµРЅРёРµ СЂР°Р±РѕС‚С‹ СЃ ncurses
     return 0;
 }

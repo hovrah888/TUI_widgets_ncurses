@@ -1,0 +1,16 @@
+# Сборка
+/build/
+/cmake-build-*/
+*.o
+*.a
+compile_commands.json
+
+# macOS
+.DS_Store
+
+# Старые бинарники, попавшие в репозиторий
+/main
+/example1
+
+# Прочее
+.cache/

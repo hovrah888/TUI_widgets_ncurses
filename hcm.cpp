@@ -30,14 +30,14 @@ void Label::Show(bool selected, int y) {
 CheckBox::CheckBox(std::string text, int colorPair) : text(text), checked(false), colorPair(colorPair) {}
 
 void CheckBox::Show(bool selected, int y) { 
-    if (selected) attron(COLOR_PAIR(colorPair)); // Включаем цвет
-    mvprintw(y, 5, checked ? "(x) " : "( ) "); // Выводим чекбокс в зависимости от состояния
-    mvprintw(y, 9, text.c_str()); // Выводим текст
-    if (selected) attroff(COLOR_PAIR(colorPair)); // Выключаем цвет
+    if (selected) attron(COLOR_PAIR(colorPair)); // Р’РєР»СЋС‡Р°РµРј С†РІРµС‚
+    mvprintw(y, 5, checked ? "(x) " : "( ) "); // Р’С‹РІРѕРґРёРј С‡РµРєР±РѕРєСЃ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ СЃРѕСЃС‚РѕСЏРЅРёСЏ
+    mvprintw(y, 9, text.c_str()); // Р’С‹РІРѕРґРёРј С‚РµРєСЃС‚
+    if (selected) attroff(COLOR_PAIR(colorPair)); // Р’С‹РєР»СЋС‡Р°РµРј С†РІРµС‚
 }
 
 void CheckBox::OnSelect() {
-    checked = !checked; // Инвертируем состояние
+    checked = !checked; // РРЅРІРµСЂС‚РёСЂСѓРµРј СЃРѕСЃС‚РѕСЏРЅРёРµ
 }
 
 bool CheckBox::IsChecked() const {
@@ -152,7 +152,7 @@ Menu::~Menu() {
     for (auto widget : widgets) delete widget;
 }
 
-Key getch_key() { // Функция для получения клавиши
+Key getch_key() { // Р¤СѓРЅРєС†РёСЏ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РєР»Р°РІРёС€Рё
     int ch = getch();
     switch (ch) {
         case 'k': return Key::UP;
