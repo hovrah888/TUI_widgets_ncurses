@@ -1,6 +1,102 @@
 #include "hcm.h"
 
+#include <cstdlib>  // AI: setenv() для ESCDELAY
+
 using namespace std;
+
+namespace hcm {
+
+namespace {
+// AI: Защита от повторной инициализации: ncurses хранит состояние экрана
+// AI: глобально, и два initscr() на один терминал — это ошибка.
+bool g_terminal_active = false;
+} // namespace
+
+Terminal::Terminal() {
+    if (g_terminal_active) {
+        return;  // ok_ остаётся false
+    }
+
+    // AI: ESCDELAY — сколько ncurses ждёт после одиночного Esc, чтобы понять,
+    // AI: это Esc или начало escape-последовательности (стрелка, F-клавиша).
+    // AI: По умолчанию 1000 мс — Esc ощущается как «залипший». Ставим 25 мс.
+    // AI: ВАЖНО: set_escdelay() есть только в ncurses 6.1+, а на macOS
+    // AI: системный ncurses старше, поэтому используем переменную окружения.
+    // AI: И задавать её нужно ДО initscr(), иначе ncurses прочитает старое значение.
+    // AI: Третий аргумент 0 = не перезаписывать ESCDELAY, если пользователь
+    // AI: выставил своё значение в окружении.
+    setenv("ESCDELAY", "25", 0);
+
+    // AI: initscr() возвращает nullptr при ошибке (и сам печатает причину).
+    if (initscr() == nullptr) {
+        return;
+    }
+    g_terminal_active = true;
+    ok_ = true;
+
+    // AI: cbreak() отключает построчную буферизацию ввода: getch() начинает
+    // AI: возвращать каждую клавишу сразу, не дожидаясь Enter.
+    // AI: На практике ncurses и сам выставляет этот режим при инициализации
+    // AI: (проверено через tcgetattr: ICANON 1 -> 0), но man cbreak(3X)
+    // AI: говорит, что это НЕ гарантировано, и советует вызывать явно.
+    // AI: Строка ниже — страховка для других сборок ncurses и платформ.
+    cbreak();
+
+    // AI: noecho() выключает эхо. На уровне tty echo и так выключен самим
+    // AI: ncurses, но getch() умеет «дорисовывать» введённые символы сам —
+    // AI: именно этим управляет noecho().
+    noecho();
+
+    // AI: keypad() заставляет ncurses разбирать escape-последовательности
+    // AI: (стрелки, F-клавиши) в константы KEY_UP/KEY_DOWN/... вместо того,
+    // AI: чтобы отдавать их по байтам.
+    keypad(stdscr, TRUE);
+
+    // AI: Скрываем курсор: в меню он не нужен. Поле ввода будет временно
+    // AI: показывать его само (шаг 4).
+    curs_set(0);
+}
+
+Terminal::~Terminal() {
+    if (ok_) {
+        // AI: endwin() возвращает терминал в исходный режим: показывает
+        // AI: курсор, выходит из alternate screen, восстанавливает termios.
+        // AI: Без него после падения/выхода остаётся «сломанный» терминал.
+        endwin();
+        g_terminal_active = false;
+    }
+}
+
+void InitTheme() {
+    // AI: has_colors() == false на монохромном терминале или TERM=dumb.
+    // AI: Тогда просто не трогаем цвета, а не падаем.
+    if (!has_colors()) {
+        return;
+    }
+
+    // AI: start_color() разрешает использование цветов, use_default_colors()
+    // AI: позволяет паре использовать «цвет терминала по умолчанию» (-1).
+    // AI: Без второго вызова фон всегда был бы одним из 8 базовых цветов.
+    start_color();
+    use_default_colors();
+
+    // AI: Номера пар перенесены из main.cpp без изменений, чтобы картинка
+    // AI: осталась прежней. В P2 они станут именованными (Style/Theme).
+    init_pair(1, COLOR_MAGENTA, COLOR_CYAN);
+    init_pair(2, COLOR_BLACK, COLOR_YELLOW);
+    init_pair(3, COLOR_WHITE, COLOR_CYAN);
+    init_pair(4, COLOR_WHITE, COLOR_GREEN);
+    init_pair(5, COLOR_YELLOW, COLOR_WHITE);
+    init_pair(6, COLOR_BLACK, COLOR_RED);
+    init_pair(7, COLOR_MAGENTA, COLOR_BLUE);
+    init_pair(8, COLOR_BLACK, COLOR_MAGENTA);
+
+    // AI: bkgd() задаёт фон всей области stdscr (пара 7 — та же, что была
+    // AI: в main.cpp). Должен вызываться после init_pair(7, ...).
+    bkgd(COLOR_PAIR(7));
+}
+
+} // namespace hcm
 
 Button::Button(std::string text, std::function<void()> f, int colorPair) : text(text), f(f), colorPair(colorPair) {}
 

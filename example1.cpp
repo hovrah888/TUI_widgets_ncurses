@@ -20,22 +20,14 @@ int divide(int a, int b) {
 
 
 int main(){
-    initscr(); // Инициализация ncurses
-    start_color(); // Инициализация цветов
-    init_pair(1, COLOR_MAGENTA, COLOR_BLUE); 
-    init_pair(2, COLOR_BLACK, COLOR_YELLOW); 
-    init_pair(3, COLOR_WHITE, COLOR_CYAN); 
-    init_pair(4, COLOR_WHITE, COLOR_GREEN); 
-    init_pair(5, COLOR_YELLOW, COLOR_BLUE); 
-    init_pair(6, COLOR_BLACK, COLOR_RED);
-    init_pair(7, COLOR_MAGENTA, COLOR_BLUE);
-    init_pair(8, COLOR_BLACK, COLOR_MAGENTA);
-
-    bkgd(COLOR_PAIR(7)); 
-
-    noecho(); // Не показывать вводимые символы
-    curs_set(0); // Не показывать курсор
-    keypad(stdscr, TRUE); // Включаем режим работы с функциональными клавишами
+    // AI: Единая инициализация вместо копипасты. Обрати внимание: палитра
+    // AI: здесь теперь та же, что у demo (InitTheme общая), поэтому пары 1
+    // AI: и 5 визуально немного отличаются от прежней версии этого примера.
+    hcm::Terminal term;
+    if (!term.Valid()) {
+        return 1;
+    }
+    hcm::InitTheme();
 
     Menu calc(" CALCULATOR ");
     calc.widgets.push_back(new Input("Enter 1st number", "Please enter number: ", 3));
@@ -68,6 +60,6 @@ int main(){
         calc.Input(getch_key());
     }
 
-    endwin(); // Завершение работы с ncurses
+    // AI: endwin() убран: его вызывает ~Terminal().
     return 0;
 }

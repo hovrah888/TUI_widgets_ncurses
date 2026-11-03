@@ -15,22 +15,14 @@ int func(int a, int b) {
 }
 
 int main() {
-    initscr(); // Инициализация ncurses
-    start_color(); // Инициализация цветов
-    init_pair(1, COLOR_MAGENTA, COLOR_CYAN); 
-    init_pair(2, COLOR_BLACK, COLOR_YELLOW); 
-    init_pair(3, COLOR_WHITE, COLOR_CYAN); 
-    init_pair(4, COLOR_WHITE, COLOR_GREEN); 
-    init_pair(5, COLOR_YELLOW, COLOR_WHITE); 
-    init_pair(6, COLOR_BLACK, COLOR_RED);
-    init_pair(7, COLOR_MAGENTA, COLOR_BLUE);
-    init_pair(8, COLOR_BLACK, COLOR_MAGENTA);
-
-    bkgd(COLOR_PAIR(7)); // Заливаем фон цветом 1
-
-    noecho(); // Не показывать вводимые символы
-    curs_set(0); // Не показывать курсор
-    keypad(stdscr, TRUE); // Включаем режим работы с функциональными клавишами
+    // AI: Вся инициализация терминала теперь в одном месте.
+    // AI: term создаётся раньше виджетов, поэтому разрушится последним:
+    // AI: endwin() произойдёт уже после удаления всех Menu/Widget.
+    hcm::Terminal term;
+    if (!term.Valid()) {
+        return 1;
+    }
+    hcm::InitTheme();
 
     Menu root(" MENU ");
     Menu help("HELP MENU");
@@ -73,6 +65,8 @@ int main() {
         currentMenu->Input(key);
     }
 
-    endwin(); // Завершение работы с ncurses
+    // AI: endwin() здесь больше не нужен: его вызывает ~Terminal().
+    // AI: Деструктор сработает и при обычном выходе из main, и при
+    // AI: размотке стека из-за исключения.
     return 0;
 }

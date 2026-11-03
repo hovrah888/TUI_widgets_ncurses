@@ -91,6 +91,39 @@ public:
     ~Menu();
 };
 
+namespace hcm {
+
+// AI: RAII-обёртка над жизненным циклом ncurses.
+// AI: Создаётся в начале main, разрушается при выходе из области видимости.
+// AI: Деструктор вызывает endwin(), поэтому терминал восстанавливается сам,
+// AI: и в main больше не нужен ручной endwin() в конце.
+class Terminal {
+public:
+    Terminal();
+    ~Terminal();
+
+    // AI: Копировать/перемещать нельзя: два объекта Terminal означали бы
+    // AI: два initscr()/endwin() на один и тот же терминал.
+    Terminal(const Terminal&) = delete;
+    Terminal& operator=(const Terminal&) = delete;
+    Terminal(Terminal&&) = delete;
+    Terminal& operator=(Terminal&&) = delete;
+
+    // AI: false, если initscr() не смог инициализировать экран
+    // AI: (например, TERM не задан или stdin не терминал).
+    bool Valid() const { return ok_; }
+
+private:
+    bool ok_ = false;
+};
+
+// AI: Единая точка инициализации цветов. Раньше init_pair(1..8) и bkgd()
+// AI: копировались в каждый пример, и библиотека неявно требовала, чтобы
+// AI: хост инициализировал пары 1..8 в определённом порядке.
+void InitTheme();
+
+} // namespace hcm
+
 Key getch_key();
 
 #endif // HCM_H
