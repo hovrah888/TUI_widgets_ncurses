@@ -29,6 +29,10 @@ int main(){
     }
     hcm::InitTheme();
 
+    // AI: Флаг вместо exit(0) внутри библиотеки: цикл завершится сам,
+    // AI: и деструкторы Menu/Widget/Terminal выполнятся в обычном порядке.
+    bool running = true;
+
     Menu calc(" CALCULATOR ");
     calc.widgets.push_back(new Input("Enter 1st number", "Please enter number: ", 3));
     calc.widgets.push_back(new Input("Enter 2nd number", "Please enter number: ", 3));
@@ -53,11 +57,15 @@ int main(){
         int b = stoi(((Input*)calc.widgets[1])->text); 
         //((Label*)calc.widgets[2])->SetText("Result: " + to_string(divide(a, b)));
     }, 2));
-    calc.widgets.push_back(new Button("EXIT", []() { endwin(); exit(0); }, 6));
+    calc.widgets.push_back(new Button("EXIT", [&]() { running = false; }, 6));
 
-    while (true) {
+    // AI: Здесь нет вложенных меню, поэтому Quit и Close одинаково означают
+    // AI: «выйти»: всё, что не Continue, завершает цикл.
+    while (running) {
         calc.Show();
-        calc.Input(hcm::ReadKey());
+        if (calc.HandleKey(hcm::ReadKey()) != hcm::Result::Continue) {
+            break;
+        }
     }
 
     // AI: endwin() убран: его вызывает ~Terminal().

@@ -27,6 +27,16 @@ enum class Key {
     Unknown     // AI: всё, что не назначено
 };
 
+// AI: Результат обработки клавиши меню. Библиотека сообщает, ЧТО случилось,
+// AI: а решение (выйти из приложения или вернуться на предыдущий экран)
+// AI: принимает вызывающий код. Раньше Menu::Input сам вызывал exit(0),
+// AI: из-за чего библиотеку нельзя было встроить в чужое приложение.
+enum class Result {
+    Continue,   // AI: меню продолжает работу
+    Close,      // AI: пользователь просит закрыть это меню (Esc)
+    Quit        // AI: пользователь просит выйти из приложения (q)
+};
+
 } // namespace hcm
 
 struct Widget {
@@ -105,7 +115,8 @@ public:
     int selectedIndex = 0;
     Menu(std::string header);
     void Show();
-    void Input(hcm::Key key);
+    // AI: Возвращает Result вместо того, чтобы завершать процесс самому.
+    hcm::Result HandleKey(hcm::Key key);
     ~Menu();
 };
 

@@ -29,6 +29,11 @@ int main() {
 
     Menu* currentMenu = &root;
 
+    // AI: Флаг жизни приложения. Раньше его роль играл exit(0) внутри
+    // AI: библиотеки; теперь цикл завершается естественно, и все деструкторы
+    // AI: (Menu, Widget, Terminal) успевают выполниться.
+    bool running = true;
+
     Input* input1 = new Input("Enter 1st number", "Please enter number: ", 3);
     Input* input2 = new Input("Enter 2nd number", "Please enter number: ", 3);
     Label* resultLabel = new Label("Result: ", 5);
@@ -51,20 +56,42 @@ int main() {
     lst->AddItem(new Label("3 item", 5));
 
     root.widgets.push_back(lst);
-    root.widgets.push_back(new Button("Exit", []() { endwin(); exit(0); }, 6));
+    // AI: Кнопка больше не завершает процесс сама — она просто опускает флаг,
+    // AI: а выйти из цикла и вызвать деструкторы будет main.
+    root.widgets.push_back(new Button("Exit", [&]() { running = false; }, 6));
 
     help.widgets.push_back(new Label("Use UP/DOWN to navigate", 5));
     help.widgets.push_back(new Label("Enter to select", 5));
-    help.widgets.push_back(new Label("X to exit", 5));
+    // AI: Было "X to exit", но теперь Back на этом экране возвращает в корень.
+    help.widgets.push_back(new Label("X to go back", 5));
     help.widgets.push_back(new Button("Back", [&]() { currentMenu = &root; }, 6));
 
 
-    // AI: ReadKey() читает ровно одно нажатие и сразу переводит его в Key.
+    // AI: ReadKey() читает ровно одно нажатие, HandleKey() его обрабатывает
+    // AI: и возвращает Result. Дальше решает приложение:
+    // AI:  - Quit (q)   — выйти из приложения из любого меню;
+    // AI:  - Close (Esc) — закрыть текущее меню: help -> root, root -> выход;
+    // AI:  - Continue     — просто перерисовать кадр.
     // AI: Порядок важен: сначала рисуем кадр, потом ждём клавишу — поэтому
     // AI: после каждого ввода экран перерисовывается с новым выделением.
-    while (true) {
+    while (running) {
         currentMenu->Show();
-        currentMenu->Input(hcm::ReadKey());
+        switch (currentMenu->HandleKey(hcm::ReadKey())) {
+            case hcm::Result::Quit:
+                running = false;
+                break;
+            case hcm::Result::Close:
+                // AI: Политика «Esc на корне = выход» живёт здесь, в приложении,
+                // AI: а не в библиотеке. Другой проект сможет решить иначе.
+                if (currentMenu == &help) {
+                    currentMenu = &root;
+                } else {
+                    running = false;
+                }
+                break;
+            case hcm::Result::Continue:
+                break;
+        }
     }
 
     // AI: endwin() здесь больше не нужен: его вызывает ~Terminal().

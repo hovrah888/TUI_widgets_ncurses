@@ -9,6 +9,7 @@ using namespace std;
 // AI: но не его значения: писать всё равно нужно Key::Up, а не просто Up.
 // AI: Так сохраняется типобезопасность enum class и не нужен hcm:: в каждой case-метке.
 using hcm::Key;
+using hcm::Result;
 
 namespace hcm {
 
@@ -247,27 +248,38 @@ void Menu::Show() {
     refresh();
 }
 
-void Menu::Input(hcm::Key key) {
-    // AI: Quit обрабатываем ДО делегирования списку. Иначе при открытом
+Result Menu::HandleKey(hcm::Key key) {
+    // AI: Quit обрабатываем ДО делегирования списку: иначе при открытом
     // AI: списке 'q' уйдёт в List::Input и не сработает.
-    // AI: endwin()+exit(0) здесь временно: шаг 3 заменит это на Result,
-    // AI: чтобы библиотека не завершала процесс сама.
     if (key == Key::Quit) {
-        endwin();
-        exit(0);
+        return Result::Quit;
     }
 
-    // AI: Resize не требует действий: главный цикл после Input всё равно
+    // AI: Resize не требует действий: главный цикл после HandleKey всё равно
     // AI: вызовет Show(), а тот перерисует экран уже с новыми LINES/COLS.
     if (key == Key::Resize) {
-        return;
+        return Result::Continue;
+    }
+
+    // AI: Пустое меню — не повод для UB: widgets[selectedIndex] читать нельзя.
+    // AI: Esc на пустом меню означает «закрыть его».
+    if (widgets.empty()) {
+        return key == Key::Back ? Result::Close : Result::Continue;
+    }
+
+    // AI: widgets и selectedIndex публичные, поэтому их могли изменить снаружи.
+    // AI: Подрезаем индекс, чтобы widgets[selectedIndex] был корректен.
+    if (selectedIndex < 0) {
+        selectedIndex = 0;
+    } else if (selectedIndex >= static_cast<int>(widgets.size())) {
+        selectedIndex = static_cast<int>(widgets.size()) - 1;
     }
 
     if (widgets[selectedIndex] != nullptr) {
         auto* list = dynamic_cast<List*>(widgets[selectedIndex]);
         if (list && list->IsOpened()) {
             list->Input(key);
-            return;
+            return Result::Continue;
         }
     }
 
@@ -282,14 +294,13 @@ void Menu::Input(hcm::Key key) {
             widgets[selectedIndex]->OnSelect();
             break;
         case Key::Back:
-            // AI: Пока Back = выход, как было с 'x'. В шаге 3 он станет
-            // AI: «закрыть меню», а решение о выходе останется в main.
-            endwin();
-            exit(0);
-            break;
+            // AI: Здесь больше нет endwin()/exit(0): библиотека не решает,
+            // AI: что значит «назад» для конкретного приложения.
+            return Result::Close;
         default:
             break;
     }
+    return Result::Continue;
 }
 
 Menu::~Menu() {
