@@ -59,10 +59,12 @@ int main() {
     help.widgets.push_back(new Button("Back", [&]() { currentMenu = &root; }, 6));
 
 
+    // AI: ReadKey() читает ровно одно нажатие и сразу переводит его в Key.
+    // AI: Порядок важен: сначала рисуем кадр, потом ждём клавишу — поэтому
+    // AI: после каждого ввода экран перерисовывается с новым выделением.
     while (true) {
         currentMenu->Show();
-        Key key = getch_key();
-        currentMenu->Input(key);
+        currentMenu->Input(hcm::ReadKey());
     }
 
     // AI: endwin() здесь больше не нужен: его вызывает ~Terminal().

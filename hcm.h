@@ -9,7 +9,25 @@
 #include <functional>
 #include <string>
 
-enum Key { UP, DOWN, ESC, SELECT, UNKNOWN };
+// AI: enum class вместо обычного enum:
+// AI:  - значения не протекают в глобальную область видимости (Key::Up, а не UP);
+// AI:  - компилятор не позволит случайно сравнить Key с числом или с другим enum.
+namespace hcm {
+
+enum class Key {
+    None,       // AI: getch() вернул ERR. Пока не используется (нет timeout/nodelay).
+    Up,
+    Down,
+    Left,
+    Right,
+    Select,     // AI: Enter или пробел
+    Back,       // AI: Esc или 'x' — «назад» на уровень выше
+    Quit,       // AI: 'q' — выйти из приложения
+    Resize,     // AI: KEY_RESIZE — терминал изменил размер
+    Unknown     // AI: всё, что не назначено
+};
+
+} // namespace hcm
 
 struct Widget {
     virtual void Show(bool selected = false, int y = 0) = 0;
@@ -64,7 +82,7 @@ public:
     void Show(bool selected = false, int y = 0) override;
     bool IsOpened() const;
     void OnSelect() override;
-    void Input(Key key);
+    void Input(hcm::Key key);
     ~List();
 };
 
@@ -87,7 +105,7 @@ public:
     int selectedIndex = 0;
     Menu(std::string header);
     void Show();
-    void Input(Key key);
+    void Input(hcm::Key key);
     ~Menu();
 };
 
@@ -122,8 +140,11 @@ private:
 // AI: хост инициализировал пары 1..8 в определённом порядке.
 void InitTheme();
 
-} // namespace hcm
+// AI: Читает одно нажатие и переводит его в Key. Заменяет старую getch_key().
+// AI: Внутри используется getch(), поэтому функция должна вызываться только
+// AI: после успешной инициализации Terminal.
+Key ReadKey();
 
-Key getch_key();
+} // namespace hcm
 
 #endif // HCM_H

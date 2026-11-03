@@ -4,6 +4,12 @@
 
 using namespace std;
 
+// AI: Методы List/Menu определены в глобальной области видимости, а Key живёт
+// AI: в namespace hcm. Это объявление вводит в область видимости ИМЯ типа,
+// AI: но не его значения: писать всё равно нужно Key::Up, а не просто Up.
+// AI: Так сохраняется типобезопасность enum class и не нужен hcm:: в каждой case-метке.
+using hcm::Key;
+
 namespace hcm {
 
 namespace {
@@ -173,17 +179,31 @@ void List::OnSelect() {
     opened = !opened;
 }
 
-void List::Input(Key key) {
+void List::Input(hcm::Key key) {
     if (opened) {
         switch (key) {
-            case UP: if (selectedIndex > 0) selectedIndex--; break;
-            case DOWN: if (selectedIndex < w.size() - 1) selectedIndex++; break;
-            case SELECT: w[selectedIndex]->OnSelect(); break;
-            case ESC: opened = false; break;
-            default: break;
+            case Key::Up:
+                if (selectedIndex > 0) --selectedIndex;
+                break;
+            case Key::Down:
+                // AI: static_cast<int> убирает предупреждение о сравнении
+                // AI: signed/unsigned: size() возвращает size_t.
+                // AI: Плюс запись selectedIndex + 1 не уходит в минус при пустом списке.
+                if (selectedIndex + 1 < static_cast<int>(w.size())) ++selectedIndex;
+                break;
+            case Key::Select:
+                w[selectedIndex]->OnSelect();
+                break;
+            case Key::Back:
+                opened = false;
+                break;
+            default:
+                break;
         }
     } else {
-        if (key == SELECT) opened = true;
+        if (key == Key::Select) {
+            opened = true;
+        }
     }
 }
 
@@ -227,7 +247,22 @@ void Menu::Show() {
     refresh();
 }
 
-void Menu::Input(Key key) {
+void Menu::Input(hcm::Key key) {
+    // AI: Quit обрабатываем ДО делегирования списку. Иначе при открытом
+    // AI: списке 'q' уйдёт в List::Input и не сработает.
+    // AI: endwin()+exit(0) здесь временно: шаг 3 заменит это на Result,
+    // AI: чтобы библиотека не завершала процесс сама.
+    if (key == Key::Quit) {
+        endwin();
+        exit(0);
+    }
+
+    // AI: Resize не требует действий: главный цикл после Input всё равно
+    // AI: вызовет Show(), а тот перерисует экран уже с новыми LINES/COLS.
+    if (key == Key::Resize) {
+        return;
+    }
+
     if (widgets[selectedIndex] != nullptr) {
         auto* list = dynamic_cast<List*>(widgets[selectedIndex]);
         if (list && list->IsOpened()) {
@@ -237,10 +272,23 @@ void Menu::Input(Key key) {
     }
 
     switch (key) {
-        case UP: if (selectedIndex > 0) selectedIndex--; break;
-        case DOWN: if (selectedIndex < widgets.size() - 1) selectedIndex++; break;
-        case SELECT: widgets[selectedIndex]->OnSelect(); break;
-        case ESC: endwin(); exit(0);
+        case Key::Up:
+            if (selectedIndex > 0) --selectedIndex;
+            break;
+        case Key::Down:
+            if (selectedIndex + 1 < static_cast<int>(widgets.size())) ++selectedIndex;
+            break;
+        case Key::Select:
+            widgets[selectedIndex]->OnSelect();
+            break;
+        case Key::Back:
+            // AI: Пока Back = выход, как было с 'x'. В шаге 3 он станет
+            // AI: «закрыть меню», а решение о выходе останется в main.
+            endwin();
+            exit(0);
+            break;
+        default:
+            break;
     }
 }
 
@@ -248,13 +296,43 @@ Menu::~Menu() {
     for (auto widget : widgets) delete widget;
 }
 
-Key getch_key() { // Функция для получения клавиши
-    int ch = getch();
-    switch (ch) {
-        case 'k': return Key::UP;
-        case 'j': return Key::DOWN;
-        case '\n': return Key::SELECT;
-        case 'x': return Key::ESC;
-        default: return Key::UNKNOWN;
+namespace hcm {
+
+Key ReadKey() {
+    // AI: getch() возвращает либо ASCII-код, либо одну из констант KEY_*,
+    // AI: если последовательность была разобрана ncurses. Разбор включается
+    // AI: вызовом keypad(stdscr, TRUE) в Terminal.
+    switch (getch()) {
+        // AI: vim-подобные hjkl продублированы стрелками: getch() отдаёт
+        // AI: KEY_UP/KEY_DOWN/... только благодаря keypad().
+        case 'k': case KEY_UP:    return Key::Up;
+        case 'j': case KEY_DOWN:  return Key::Down;
+        case 'h': case KEY_LEFT:  return Key::Left;
+        case 'l': case KEY_RIGHT: return Key::Right;
+
+        // AI: Enter в разных терминалах приходит как '\n', '\r' или KEY_ENTER,
+        // AI: поэтому ловим все три варианта. Пробел — тоже «выбрать».
+        case '\n': case '\r': case ' ': case KEY_ENTER:
+            return Key::Select;
+
+        // AI: 27 — это одиночный Esc. Он приходит только после ESCDELAY
+        // AI: (25 мс, выставлено в Terminal), иначе его не отличить от
+        // AI: начала escape-последовательности стрелки.
+        // AI: 'x' оставлен как алиас для совместимости с прежним поведением.
+        case 27: case 'x':        return Key::Back;
+
+        case 'q':                 return Key::Quit;
+
+        // AI: SIGWINCH от ncurses превращается в KEY_RESIZE.
+        case KEY_RESIZE:          return Key::Resize;
+
+        // AI: Ctrl-C (0x03) сюда НЕ доходит: под cbreak() включён ISIG,
+        // AI: ядро превращает его в SIGINT, а ncurses сам восстанавливает
+        // AI: терминал и завершает процесс (проверено: endwin-последовательность
+        // AI: в выводе есть, код возврата 1). Чтобы ловить Ctrl-C как клавишу,
+        // AI: нужен raw()-режим — это отдельное решение, не для этого шага.
+        default:                  return Key::Unknown;
     }
 }
+
+} // namespace hcm

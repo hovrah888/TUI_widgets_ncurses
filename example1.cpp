@@ -57,7 +57,7 @@ int main(){
 
     while (true) {
         calc.Show();
-        calc.Input(getch_key());
+        calc.Input(hcm::ReadKey());
     }
 
     // AI: endwin() убран: его вызывает ~Terminal().
