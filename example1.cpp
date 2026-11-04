@@ -34,27 +34,28 @@ int main(){
     bool running = true;
 
     Menu calc(" CALCULATOR ");
-    calc.widgets.push_back(new Input("Enter 1st number", "Please enter number: ", 3));
-    calc.widgets.push_back(new Input("Enter 2nd number", "Please enter number: ", 3));
+    calc.widgets.push_back(new TextField("Enter 1st number", "Please enter number: ", 3));
+    calc.widgets.push_back(new TextField("Enter 2nd number", "Please enter number: ", 3));
     calc.widgets.push_back(new Label("Result: ", 5));
     calc.widgets.push_back(new Button("Sum", [&]() {
-        int a = stoi(((Input*)calc.widgets[0])->text);
-        int b = stoi(((Input*)calc.widgets[1])->text); 
+        // AI: ParseInt() вместо stoi(): пустое поле даёт 0, а не исключение.
+        int a = static_cast<TextField*>(calc.widgets[0])->ParseInt();
+        int b = static_cast<TextField*>(calc.widgets[1])->ParseInt();
        //((Label*)calc.widgets[2])->SetText("Result: " + to_string(sum(a, b)));
     }, 2));
     calc.widgets.push_back(new Button("Sub", [&]() {
-        int a = stoi(((Input*)calc.widgets[0])->text); 
-        int b = stoi(((Input*)calc.widgets[1])->text); 
+        int a = static_cast<TextField*>(calc.widgets[0])->ParseInt();
+        int b = static_cast<TextField*>(calc.widgets[1])->ParseInt();
         //((Label*)calc.widgets[2])->SetText("Result: " + to_string(sub(a, b)));
     }, 2));
     calc.widgets.push_back(new Button("Mul", [&]() {
-        int a = stoi(((Input*)calc.widgets[0])->text); 
-        int b = stoi(((Input*)calc.widgets[1])->text); 
+        int a = static_cast<TextField*>(calc.widgets[0])->ParseInt();
+        int b = static_cast<TextField*>(calc.widgets[1])->ParseInt();
         //((Label*)calc.widgets[2])->SetText("Result: " + to_string(mul(a, b)));
     }, 2));
     calc.widgets.push_back(new Button("Div", [&]() {
-        int a = stoi(((Input*)calc.widgets[0])->text); 
-        int b = stoi(((Input*)calc.widgets[1])->text); 
+        int a = static_cast<TextField*>(calc.widgets[0])->ParseInt();
+        int b = static_cast<TextField*>(calc.widgets[1])->ParseInt();
         //((Label*)calc.widgets[2])->SetText("Result: " + to_string(divide(a, b)));
     }, 2));
     calc.widgets.push_back(new Button("EXIT", [&]() { running = false; }, 6));

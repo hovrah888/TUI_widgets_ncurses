@@ -34,20 +34,23 @@ int main() {
     // AI: (Menu, Widget, Terminal) успевают выполниться.
     bool running = true;
 
-    Input* input1 = new Input("Enter 1st number", "Please enter number: ", 3);
-    Input* input2 = new Input("Enter 2nd number", "Please enter number: ", 3);
+    TextField* input1 = new TextField("Enter 1st number", "Please enter number: ", 3);
+    TextField* input2 = new TextField("Enter 2nd number", "Please enter number: ", 3);
     Label* resultLabel = new Label("Result: ", 5);
 
     Button* calculateButton = new Button("Calculate", [&]() {
-        int a = stoi(input1->text); // Преобразуем строку в число
-        int b = stoi(input2->text); // Преобразуем строку в число
+        // AI: ParseInt() возвращает 0 для пустого или некорректного ввода.
+        // AI: Раньше здесь был stoi(text), который на placeholder-строке
+        // AI: "Enter 1st number" бросал std::invalid_argument.
+        int a = input1->ParseInt();
+        int b = input2->ParseInt();
         resultLabel->SetText("Result: " + to_string(func(a, b)));
     }, 2);
 
 
     root.widgets.push_back(new Button("Press for help", [&]() { currentMenu = &help; }, 8));
     root.widgets.push_back(new Button("Start", Execute, 2));
-    root.widgets.push_back(new Input("Enter something", "Please enter something: ", 3));
+    root.widgets.push_back(new TextField("Enter something", "Please enter something: ", 3));
     root.widgets.push_back(new CheckBox("Check me", 4));
 
     List* lst = new List("List", 4);

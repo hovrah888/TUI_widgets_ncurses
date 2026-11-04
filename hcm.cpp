@@ -1,6 +1,8 @@
 #include "hcm.h"
 
-#include <cstdlib>  // AI: setenv() для ESCDELAY
+#include <algorithm> // AI: std::remove_if для фильтрации управляющих символов
+#include <charconv>  // AI: std::from_chars в TextField::ParseInt
+#include <cstdlib>   // AI: setenv() для ESCDELAY
 
 using namespace std;
 
@@ -212,27 +214,91 @@ List::~List() {
     for (auto item : w) delete item;
 }
 
-Input::Input(std::string placeholder, std::string comment, int colorPair) : text(placeholder), comment(comment), colorPair(colorPair) {}
+TextField::TextField(std::string placeholder, std::string comment, int colorPair, int maxLength)
+    : placeholder(placeholder), comment(comment), colorPair(colorPair), maxLength(maxLength) {}
 
-void Input::Show(bool selected, int y) {
+void TextField::Show(bool selected, int y) {
+    // AI: запоминаем позицию: приглашение при вводе выводится строкой ниже.
+    lastY = y;
+
     if (selected) attron(COLOR_PAIR(colorPair));
-    mvprintw(y, 5, text.c_str());
+    // AI: пустое поле показывает placeholder, заполненное — само значение.
+    // AI: Формат "%s" обязателен: в тексте пользователя может встретиться '%'.
+    mvprintw(y, 5, "%s", Empty() ? placeholder.c_str() : value.c_str());
     if (selected) attroff(COLOR_PAIR(colorPair));
 }
 
-void Input::OnSelect() {
-    printw("\n%s", comment.c_str());
+void TextField::OnSelect() {
+    // AI: Приглашение печатаем под полем и предварительно чистим строку,
+    // AI: чтобы не осталось хвостов от предыдущего ввода.
+    move(lastY + 1, 5);
+    clrtoeol();
+    printw("%s", comment.c_str());
+    refresh();
+
+    // AI: На время ввода возвращаем эхо и курсор: иначе не видно, что печатаешь.
     echo();
-    char buffer[256];
-    getstr(buffer);
-    text = std::string(buffer);
+    curs_set(1);
+
+    // AI: getnstr() читает не больше maxLength символов. Старая getstr()
+    // AI: границы не знала и могла переполнить буфер.
+    // AI: vector, а не char[256]: длина задаётся в рантайме, +1 под '\0'.
+    std::vector<char> buffer(maxLength + 1, '\0');
+    // AI: getnstr() возвращает ERR, если ввод не удался (например, EOF).
+    // AI: В этом случае оставляем прежнее значение, а не затираем его пустым.
+    if (getnstr(buffer.data(), maxLength) != ERR) {
+        // AI: buffer.data() — обычная C-строка: getnstr сам ставит '\0' в конце.
+        value.assign(buffer.data());
+
+        // AI: getnstr не трактует Esc как отмену: он кладёт в строку байт 27.
+        // AI: Вырезаем управляющие символы, чтобы в значении не оставался мусор,
+        // AI: который невозможно увидеть и который ломает ParseInt.
+        value.erase(std::remove_if(value.begin(), value.end(),
+                                   [](unsigned char c) { return c < 32 || c == 127; }),
+                    value.end());
+    }
+
+    // AI: Возвращаем режим меню: без эха и без курсора.
+    curs_set(0);
     noecho();
+}
+
+const std::string& TextField::GetValue() const {
+    return value;
+}
+
+bool TextField::Empty() const {
+    return value.empty();
+}
+
+int TextField::ParseInt(int fallback) const {
+    // AI: std::from_chars (C++17) не бросает исключений и не зависит от локали,
+    // AI: в отличие от std::stoi. Пустая строка и "12abc" дают fallback,
+    // AI: а не падение процесса.
+    if (value.empty()) {
+        return fallback;
+    }
+
+    int result = 0;
+    const char* first = value.data();
+    const char* last = first + value.size();
+    const std::from_chars_result parsed = std::from_chars(first, last, result);
+
+    // AI: ptr должен дойти до конца: иначе были лишние символы.
+    if (parsed.ec != std::errc() || parsed.ptr != last) {
+        return fallback;
+    }
+    return result;
 }
 
 Menu::Menu(std::string header) : header(header) {}
 
 void Menu::Show() {
-    clear();
+    // AI: erase() вместо clear(): clear() дополнительно заставляет терминал
+    // AI: стереть весь экран (escape-последовательность), из-за чего каждый
+    // AI: кадр мог мигать. erase() просто заполняет буфер окна пробелами, а
+    // AI: refresh() перерисовывает только изменившиеся места.
+    erase();
     attron(COLOR_PAIR(1));
     mvprintw(1, 5, header.c_str());
     attroff(COLOR_PAIR(1));
@@ -309,41 +375,41 @@ Menu::~Menu() {
 
 namespace hcm {
 
-Key ReadKey() {
-    // AI: getch() возвращает либо ASCII-код, либо одну из констант KEY_*,
-    // AI: если последовательность была разобрана ncurses. Разбор включается
-    // AI: вызовом keypad(stdscr, TRUE) в Terminal.
-    switch (getch()) {
-        // AI: vim-подобные hjkl продублированы стрелками: getch() отдаёт
-        // AI: KEY_UP/KEY_DOWN/... только благодаря keypad().
-        case 'k': case KEY_UP:    return Key::Up;
-        case 'j': case KEY_DOWN:  return Key::Down;
-        case 'h': case KEY_LEFT:  return Key::Left;
-        case 'l': case KEY_RIGHT: return Key::Right;
+    Key ReadKey() {
+        // AI: getch() возвращает либо ASCII-код, либо одну из констант KEY_*,
+        // AI: если последовательность была разобрана ncurses. Разбор включается
+        // AI: вызовом keypad(stdscr, TRUE) в Terminal.
+        switch (getch()) {
+            // AI: vim-подобные hjkl продублированы стрелками: getch() отдаёт
+            // AI: KEY_UP/KEY_DOWN/... только благодаря keypad().
+            case 'k': case KEY_UP:    return Key::Up;
+            case 'j': case KEY_DOWN:  return Key::Down;
+            case 'h': case KEY_LEFT:  return Key::Left;
+            case 'l': case KEY_RIGHT: return Key::Right;
 
-        // AI: Enter в разных терминалах приходит как '\n', '\r' или KEY_ENTER,
-        // AI: поэтому ловим все три варианта. Пробел — тоже «выбрать».
-        case '\n': case '\r': case ' ': case KEY_ENTER:
-            return Key::Select;
+            // AI: Enter в разных терминалах приходит как '\n', '\r' или KEY_ENTER,
+            // AI: поэтому ловим все три варианта. Пробел — тоже «выбрать».
+            case '\n': case '\r': case ' ': case KEY_ENTER:
+                return Key::Select;
 
-        // AI: 27 — это одиночный Esc. Он приходит только после ESCDELAY
-        // AI: (25 мс, выставлено в Terminal), иначе его не отличить от
-        // AI: начала escape-последовательности стрелки.
-        // AI: 'x' оставлен как алиас для совместимости с прежним поведением.
-        case 27: case 'x':        return Key::Back;
+            // AI: 27 — это одиночный Esc. Он приходит только после ESCDELAY
+            // AI: (25 мс, выставлено в Terminal), иначе его не отличить от
+            // AI: начала escape-последовательности стрелки.
+            // AI: 'x' оставлен как алиас для совместимости с прежним поведением.
+            case 27: case 'x':        return Key::Back;
 
-        case 'q':                 return Key::Quit;
+            case 'q':                 return Key::Quit;
 
-        // AI: SIGWINCH от ncurses превращается в KEY_RESIZE.
-        case KEY_RESIZE:          return Key::Resize;
+            // AI: SIGWINCH от ncurses превращается в KEY_RESIZE.
+            case KEY_RESIZE:          return Key::Resize;
 
-        // AI: Ctrl-C (0x03) сюда НЕ доходит: под cbreak() включён ISIG,
-        // AI: ядро превращает его в SIGINT, а ncurses сам восстанавливает
-        // AI: терминал и завершает процесс (проверено: endwin-последовательность
-        // AI: в выводе есть, код возврата 1). Чтобы ловить Ctrl-C как клавишу,
-        // AI: нужен raw()-режим — это отдельное решение, не для этого шага.
-        default:                  return Key::Unknown;
+            // AI: Ctrl-C (0x03) сюда НЕ доходит: под cbreak() включён ISIG,
+            // AI: ядро превращает его в SIGINT, а ncurses сам восстанавливает
+            // AI: терминал и завершает процесс (проверено: endwin-последовательность
+            // AI: в выводе есть, код возврата 1). Чтобы ловить Ctrl-C как клавишу,
+            // AI: нужен raw()-режим — это отдельное решение, не для этого шага.
+            default:                  return Key::Unknown;
+        }
     }
-}
 
 } // namespace hcm

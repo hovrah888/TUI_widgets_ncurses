@@ -96,15 +96,31 @@ public:
     ~List();
 };
 
-class Input : public Widget {
+// AI: Input переименован в TextField: «Input» слишком общее имя и путается
+// AI: с ключевым словом в других API. Класс — это именно текстовое поле.
+class TextField : public Widget {
 private:
+    // AI: placeholder — подсказка, видимая, пока поле пустое. Раньше она
+    // AI: хранилась в том же поле text, что и ввод, поэтому stoi() пытался
+    // AI: распарсить "Enter 1st number" и бросал исключение.
+    std::string placeholder;
+    // AI: value — только то, что реально ввёл пользователь (может быть пустым).
+    std::string value;
     std::string comment;
     int colorPair;
+    int maxLength;
+    // AI: Строка, на которой поле нарисовано в последний раз. Нужна, чтобы
+    // AI: OnSelect() знал, куда печатать приглашение к вводу.
+    int lastY = 0;
 public:
-    std::string text;
-    Input(std::string placeholder, std::string comment, int colorPair);
+    TextField(std::string placeholder, std::string comment, int colorPair, int maxLength = 64);
     void Show(bool selected = false, int y = 0) override;
     void OnSelect() override;
+    const std::string& GetValue() const;
+    bool Empty() const;
+    // AI: Безопасное преобразование в int: при пустом или некорректном вводе
+    // AI: возвращает fallback, а не бросает исключение, как std::stoi.
+    int ParseInt(int fallback = 0) const;
 };
 
 class Menu {
@@ -122,39 +138,39 @@ public:
 
 namespace hcm {
 
-// AI: RAII-обёртка над жизненным циклом ncurses.
-// AI: Создаётся в начале main, разрушается при выходе из области видимости.
-// AI: Деструктор вызывает endwin(), поэтому терминал восстанавливается сам,
-// AI: и в main больше не нужен ручной endwin() в конце.
-class Terminal {
-public:
-    Terminal();
-    ~Terminal();
+    // AI: RAII-обёртка над жизненным циклом ncurses.
+    // AI: Создаётся в начале main, разрушается при выходе из области видимости.
+    // AI: Деструктор вызывает endwin(), поэтому терминал восстанавливается сам,
+    // AI: и в main больше не нужен ручной endwin() в конце.
+    class Terminal {
+    public:
+        Terminal();
+        ~Terminal();
 
-    // AI: Копировать/перемещать нельзя: два объекта Terminal означали бы
-    // AI: два initscr()/endwin() на один и тот же терминал.
-    Terminal(const Terminal&) = delete;
-    Terminal& operator=(const Terminal&) = delete;
-    Terminal(Terminal&&) = delete;
-    Terminal& operator=(Terminal&&) = delete;
+        // AI: Копировать/перемещать нельзя: два объекта Terminal означали бы
+        // AI: два initscr()/endwin() на один и тот же терминал.
+        Terminal(const Terminal&) = delete;
+        Terminal& operator=(const Terminal&) = delete;
+        Terminal(Terminal&&) = delete;
+        Terminal& operator=(Terminal&&) = delete;
 
-    // AI: false, если initscr() не смог инициализировать экран
-    // AI: (например, TERM не задан или stdin не терминал).
-    bool Valid() const { return ok_; }
+        // AI: false, если initscr() не смог инициализировать экран
+        // AI: (например, TERM не задан или stdin не терминал).
+        bool Valid() const { return ok_; }
 
-private:
-    bool ok_ = false;
-};
+    private:
+        bool ok_ = false;
+    };
 
-// AI: Единая точка инициализации цветов. Раньше init_pair(1..8) и bkgd()
-// AI: копировались в каждый пример, и библиотека неявно требовала, чтобы
-// AI: хост инициализировал пары 1..8 в определённом порядке.
-void InitTheme();
+    // AI: Единая точка инициализации цветов. Раньше init_pair(1..8) и bkgd()
+    // AI: копировались в каждый пример, и библиотека неявно требовала, чтобы
+    // AI: хост инициализировал пары 1..8 в определённом порядке.
+    void InitTheme();
 
-// AI: Читает одно нажатие и переводит его в Key. Заменяет старую getch_key().
-// AI: Внутри используется getch(), поэтому функция должна вызываться только
-// AI: после успешной инициализации Terminal.
-Key ReadKey();
+    // AI: Читает одно нажатие и переводит его в Key. Заменяет старую getch_key().
+    // AI: Внутри используется getch(), поэтому функция должна вызываться только
+    // AI: после успешной инициализации Terminal.
+    Key ReadKey();
 
 } // namespace hcm
 
