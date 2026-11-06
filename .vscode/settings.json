@@ -58,5 +58,7 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp"
-    }
+    },
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json"
 }

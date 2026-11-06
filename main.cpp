@@ -1,4 +1,9 @@
-// g++ -std=c++11 main.cpp hcm.cpp -o main -lncurses -ltinfo            компиляция
+// clang++ -std=c++17 main.cpp hcm.cpp -o main -lncurses                компиляция
+// AI: -std=c++17 обязателен: TextField::ParseInt использует std::from_chars
+// AI: (появился в C++17). При -std=c++11/14 компилятор пишет, что
+// AI: std::from_chars и std::from_chars_result не существуют.
+// AI: -ltinfo на macOS не нужен: отдельной библиотеки tinfo там нет,
+// AI: достаточно -lncurses.
 #include <iostream>
 #include "hcm.h"
 

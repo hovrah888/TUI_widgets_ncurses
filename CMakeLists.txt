@@ -12,6 +12,9 @@ find_package(Curses REQUIRED)
 
 # --- библиотека виджетов ---
 add_library(hcm hcm.cpp hcm.h)
+# AI: Требование C++17 должно распространяться и на тех, кто линкует hcm:
+# AI: hcm.cpp использует std::from_chars, которого нет в C++11/14.
+target_compile_features(hcm PUBLIC cxx_std_17)
 target_include_directories(hcm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 if(CURSES_INCLUDE_DIRS)
     target_include_directories(hcm PUBLIC ${CURSES_INCLUDE_DIRS})
