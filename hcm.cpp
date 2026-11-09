@@ -2,9 +2,8 @@
 
 #include <algorithm> // AI: std::remove_if для фильтрации управляющих символов
 #include <charconv>  // AI: std::from_chars в TextField::ParseInt
+#include <cstddef>   // AI: std::size_t
 #include <cstdlib>   // AI: setenv() для ESCDELAY
-
-using namespace std;
 
 // AI: Методы List/Menu определены в глобальной области видимости, а Key живёт
 // AI: в namespace hcm. Это объявление вводит в область видимости ИМЯ типа,
@@ -158,7 +157,9 @@ void List::AddItem(Widget* item) {
 }
 
 int List::GetSize() const {
-    return w.size();
+    // AI: size() возвращает std::size_t; приводим явно, чтобы не было
+    // AI: неявного сужения до int.
+    return static_cast<int>(w.size());
 }
 
 void List::Show(bool selected, int y) {
@@ -168,8 +169,12 @@ void List::Show(bool selected, int y) {
     if (selected) attroff(COLOR_PAIR(colorPair));
 
     if (opened) {
-        for (size_t i = 0; i < w.size(); i++) {
-            w[i]->Show(i == selectedIndex, y + i + 1);
+        // AI: i имеет тип std::size_t, а selectedIndex и y — int. Приводим
+        // AI: индекс к int один раз, иначе -Wsign-compare ругается на
+        // AI: сравнение беззнакового со знаковым.
+        for (std::size_t i = 0; i < w.size(); ++i) {
+            const int row = y + static_cast<int>(i) + 1;
+            w[i]->Show(static_cast<int>(i) == selectedIndex, row);
         }
     }
 }
@@ -182,7 +187,7 @@ void List::OnSelect() {
     opened = !opened;
 }
 
-void List::Input(hcm::Key key) {
+void List::HandleKey(hcm::Key key) {
     if (opened) {
         switch (key) {
             case Key::Up:
@@ -304,8 +309,10 @@ void Menu::Show() {
     attroff(COLOR_PAIR(1));
 
     int y = 3;
-    for (size_t i = 0; i < widgets.size(); i++) {
-        widgets[i]->Show(i == selectedIndex, y);
+    // AI: Тот же приём, что в List::Show: std::size_t приводим к int,
+    // AI: чтобы сравнение с selectedIndex не было знаковым/беззнаковым.
+    for (std::size_t i = 0; i < widgets.size(); ++i) {
+        widgets[i]->Show(static_cast<int>(i) == selectedIndex, y);
         y++;
         if (dynamic_cast<List*>(widgets[i]) && dynamic_cast<List*>(widgets[i])->IsOpened()) {
             y += dynamic_cast<List*>(widgets[i])->GetSize();
@@ -316,7 +323,7 @@ void Menu::Show() {
 
 Result Menu::HandleKey(hcm::Key key) {
     // AI: Quit обрабатываем ДО делегирования списку: иначе при открытом
-    // AI: списке 'q' уйдёт в List::Input и не сработает.
+    // AI: списке 'q' уйдёт в List::HandleKey и не сработает.
     if (key == Key::Quit) {
         return Result::Quit;
     }
@@ -344,7 +351,7 @@ Result Menu::HandleKey(hcm::Key key) {
     if (widgets[selectedIndex] != nullptr) {
         auto* list = dynamic_cast<List*>(widgets[selectedIndex]);
         if (list && list->IsOpened()) {
-            list->Input(key);
+            list->HandleKey(key);
             return Result::Continue;
         }
     }

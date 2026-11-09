@@ -4,19 +4,12 @@
 // AI: std::from_chars и std::from_chars_result не существуют.
 // AI: -ltinfo на macOS не нужен: отдельной библиотеки tinfo там нет,
 // AI: достаточно -lncurses.
-#include <iostream>
 #include "hcm.h"
-
-using namespace std;
 
 void Execute() {
     mvprintw(15, 5, "Some button pressed...");
     refresh();
     napms(1000);
-}
-
-int func(int a, int b) {
-    return a + b;
 }
 
 int main() {
@@ -39,20 +32,9 @@ int main() {
     // AI: (Menu, Widget, Terminal) успевают выполниться.
     bool running = true;
 
-    TextField* input1 = new TextField("Enter 1st number", "Please enter number: ", 3);
-    TextField* input2 = new TextField("Enter 2nd number", "Please enter number: ", 3);
-    Label* resultLabel = new Label("Result: ", 5);
-
-    Button* calculateButton = new Button("Calculate", [&]() {
-        // AI: ParseInt() возвращает 0 для пустого или некорректного ввода.
-        // AI: Раньше здесь был stoi(text), который на placeholder-строке
-        // AI: "Enter 1st number" бросал std::invalid_argument.
-        int a = input1->ParseInt();
-        int b = input2->ParseInt();
-        resultLabel->SetText("Result: " + to_string(func(a, b)));
-    }, 2);
-
-
+    // AI: Было отдельное создание input1/input2/resultLabel/calculateButton,
+    // AI: но они не добавлялись ни в одно меню: мёртвый код и утечка.
+    // AI: Рабочий калькулятор теперь только в example1.cpp.
     root.widgets.push_back(new Button("Press for help", [&]() { currentMenu = &help; }, 8));
     root.widgets.push_back(new Button("Start", Execute, 2));
     root.widgets.push_back(new TextField("Enter something", "Please enter something: ", 3));

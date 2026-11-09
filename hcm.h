@@ -1,13 +1,9 @@
 #pragma once
-#ifndef HCM_H
-#define HCM_H
 
 #include <ncurses.h>
 #include <string>
 #include <vector>
-#include <iostream>
 #include <functional>
-#include <string>
 
 // AI: enum class вместо обычного enum:
 // AI:  - значения не протекают в глобальную область видимости (Key::Up, а не UP);
@@ -29,7 +25,7 @@ enum class Key {
 
 // AI: Результат обработки клавиши меню. Библиотека сообщает, ЧТО случилось,
 // AI: а решение (выйти из приложения или вернуться на предыдущий экран)
-// AI: принимает вызывающий код. Раньше Menu::Input сам вызывал exit(0),
+// AI: принимает вызывающий код. Раньше меню само вызывало exit(0),
 // AI: из-за чего библиотеку нельзя было встроить в чужое приложение.
 enum class Result {
     Continue,   // AI: меню продолжает работу
@@ -92,8 +88,16 @@ public:
     void Show(bool selected = false, int y = 0) override;
     bool IsOpened() const;
     void OnSelect() override;
-    void Input(hcm::Key key);
+    void HandleKey(hcm::Key key);
     ~List();
+
+    // AI: List владеет Widget* и удаляет их в деструкторе. Копирование
+    // AI: привело бы к double free (два деструктора удаляют одни и те же
+    // AI: указатели), поэтому запрещаем и copy, и move.
+    List(const List&) = delete;
+    List& operator=(const List&) = delete;
+    List(List&&) = delete;
+    List& operator=(List&&) = delete;
 };
 
 // AI: Input переименован в TextField: «Input» слишком общее имя и путается
@@ -134,6 +138,13 @@ public:
     // AI: Возвращает Result вместо того, чтобы завершать процесс самому.
     hcm::Result HandleKey(hcm::Key key);
     ~Menu();
+
+    // AI: Menu тоже владеет виджетами и удаляет их в деструкторе.
+    // AI: Копия означала бы два delete на одни и те же Widget*.
+    Menu(const Menu&) = delete;
+    Menu& operator=(const Menu&) = delete;
+    Menu(Menu&&) = delete;
+    Menu& operator=(Menu&&) = delete;
 };
 
 namespace hcm {
@@ -173,5 +184,3 @@ namespace hcm {
     Key ReadKey();
 
 } // namespace hcm
-
-#endif // HCM_H

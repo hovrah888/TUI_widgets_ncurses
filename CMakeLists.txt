@@ -20,14 +20,19 @@ if(CURSES_INCLUDE_DIRS)
     target_include_directories(hcm PUBLIC ${CURSES_INCLUDE_DIRS})
 endif()
 target_link_libraries(hcm PUBLIC ${CURSES_LIBRARIES})
-target_compile_options(hcm PRIVATE -Wall -Wextra -Wpedantic)
+# AI: Одни и те же предупреждения включаем и для библиотеки, и для примеров:
+# AI: иначе ошибки в примерах (например, неиспользуемые переменные) не видны.
+set(HCM_WARNINGS -Wall -Wextra -Wpedantic)
+target_compile_options(hcm PRIVATE ${HCM_WARNINGS})
 
 # --- примеры ---
 add_executable(demo main.cpp)
 target_link_libraries(demo PRIVATE hcm)
+target_compile_options(demo PRIVATE ${HCM_WARNINGS})
 
 add_executable(example1 example1.cpp)
 target_link_libraries(example1 PRIVATE hcm)
+target_compile_options(example1 PRIVATE ${HCM_WARNINGS})
 
 # --- опциональные санитайзеры ---
 option(HCM_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)

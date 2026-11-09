@@ -1,6 +1,5 @@
-#include <iostream>
 #include <string>
-#include "hcm.h" 
+#include "hcm.h"
 
 int sum(int a, int b) {
     return a + b;
@@ -34,29 +33,37 @@ int main(){
     bool running = true;
 
     Menu calc(" CALCULATOR ");
-    calc.widgets.push_back(new TextField("Enter 1st number", "Please enter number: ", 3));
-    calc.widgets.push_back(new TextField("Enter 2nd number", "Please enter number: ", 3));
-    calc.widgets.push_back(new Label("Result: ", 5));
+
+    // AI: Держим указатели на поля и Label отдельно, чтобы не доставать их
+    // AI: из calc.widgets по индексу и не кастовать вручную в каждой лямбде.
+    TextField* first = new TextField("Enter 1st number", "Please enter number: ", 3);
+    TextField* second = new TextField("Enter 2nd number", "Please enter number: ", 3);
+    Label* result = new Label("Result: ", 5);
+
+    calc.widgets.push_back(first);
+    calc.widgets.push_back(second);
+    calc.widgets.push_back(result);
+
     calc.widgets.push_back(new Button("Sum", [&]() {
         // AI: ParseInt() вместо stoi(): пустое поле даёт 0, а не исключение.
-        int a = static_cast<TextField*>(calc.widgets[0])->ParseInt();
-        int b = static_cast<TextField*>(calc.widgets[1])->ParseInt();
-       //((Label*)calc.widgets[2])->SetText("Result: " + to_string(sum(a, b)));
+        result->SetText("Result: " + std::to_string(sum(first->ParseInt(), second->ParseInt())));
     }, 2));
     calc.widgets.push_back(new Button("Sub", [&]() {
-        int a = static_cast<TextField*>(calc.widgets[0])->ParseInt();
-        int b = static_cast<TextField*>(calc.widgets[1])->ParseInt();
-        //((Label*)calc.widgets[2])->SetText("Result: " + to_string(sub(a, b)));
+        result->SetText("Result: " + std::to_string(sub(first->ParseInt(), second->ParseInt())));
     }, 2));
     calc.widgets.push_back(new Button("Mul", [&]() {
-        int a = static_cast<TextField*>(calc.widgets[0])->ParseInt();
-        int b = static_cast<TextField*>(calc.widgets[1])->ParseInt();
-        //((Label*)calc.widgets[2])->SetText("Result: " + to_string(mul(a, b)));
+        result->SetText("Result: " + std::to_string(mul(first->ParseInt(), second->ParseInt())));
     }, 2));
     calc.widgets.push_back(new Button("Div", [&]() {
-        int a = static_cast<TextField*>(calc.widgets[0])->ParseInt();
-        int b = static_cast<TextField*>(calc.widgets[1])->ParseInt();
-        //((Label*)calc.widgets[2])->SetText("Result: " + to_string(divide(a, b)));
+        const int a = first->ParseInt();
+        const int b = second->ParseInt();
+        // AI: Деление на ноль — это SIGFPE, а не C++-исключение. Проверяем
+        // AI: явно, иначе процесс упадёт прямо из обработчика кнопки.
+        if (b == 0) {
+            result->SetText("Result: division by zero");
+            return;
+        }
+        result->SetText("Result: " + std::to_string(divide(a, b)));
     }, 2));
     calc.widgets.push_back(new Button("EXIT", [&]() { running = false; }, 6));
 
